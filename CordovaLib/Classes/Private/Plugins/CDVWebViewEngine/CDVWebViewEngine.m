@@ -142,7 +142,7 @@
         } else if ([contentMode isEqual: @"desktop"]) {
             configuration.defaultWebpagePreferences.preferredContentMode = WKContentModeDesktop;
         }
-        
+
     }
 
     return configuration;
@@ -540,6 +540,12 @@ static void * KVOContext = &KVOContext;
 
 - (void) webView: (WKWebView *) webView decidePolicyForNavigationAction: (WKNavigationAction*) navigationAction decisionHandler: (void (^)(WKNavigationActionPolicy)) decisionHandler
 {
+    WKFrameInfo * target = navigationAction.targetFrame;
+
+    // We always allow iframes
+    BOOL mainFrame = (target == nil) || [target isMainFrame];
+    if (!mainFrame) return decisionHandler(TRUE);
+
     NSURL* url = [navigationAction.request URL];
     CDVViewController* vc = (CDVViewController*)self.viewController;
 
