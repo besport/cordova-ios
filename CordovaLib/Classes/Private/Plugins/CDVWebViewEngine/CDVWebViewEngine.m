@@ -23,6 +23,10 @@
 #import <Cordova/NSDictionary+CordovaPreferences.h>
 #import "CDVURLSchemeHandler.h"
 
+@interface HCPFilesStructure : NSObject
++ (NSURL *)pluginRootFolder;
+@end
+
 #import <objc/message.h>
 
 #define CDV_BRIDGE_NAME @"cordova"
@@ -316,7 +320,19 @@ static void * KVOContext = &KVOContext;
     if ([self canLoadRequest:request]) { // can load, differentiate between file urls and other schemes
         _lastRequest = request;
         if(request.URL.fileURL && self.cdvIsFileScheme) {
-            NSURL* readAccessUrl = [request.URL URLByDeletingLastPathComponent];
+
+            // by default we set allowingReadAccessToURL property to
+            // the plugin's root folder, so the WKWebView would load
+            // our updates from it.
+            NSURL* readAccessUrl = [HCPFilesStructure pluginRootFolder];
+
+            // if we are loading index page from the bundle - we need
+            // to go up in the folder structure, so the next load from
+            // the external storage would work
+            if (![request.URL.absoluteString containsString:readAccessUrl.absoluteString]) {
+              readAccessUrl = [[[request.URL URLByDeletingLastPathComponent] URLByDeletingLastPathComponent] URLByDeletingLastPathComponent];
+            }
+
             return [(WKWebView*)_engineWebView loadFileURL:request.URL allowingReadAccessToURL:readAccessUrl];
         } else if (request.URL.fileURL) {
             NSURL* startURL = [NSURL URLWithString:((CDVViewController *)self.viewController).startPage];
